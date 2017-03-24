@@ -1,24 +1,5 @@
---- Global settings ---
-READ_INTERVAL = 240000
-OPERATION_TRESHOLD = 5000
 
--- WIFI configuration --
-CFG_WIFI_AUTOIP = false
-CFG_WIFI_SSID = "YOURSIDNAME"
-CFG_WIFI_PASS = "YOURWIFIPASSWORD"
-CFG_WIFI_IP = "192.168.1.200"
-CFG_WIFI_NETMASK = "255.255.255.0"
-CFG_WIFI_GATEWAY = "192.168.1.1"
-
--- DHT22 sensor
-PIN_DHT22 = 4
-
---- Thingspeak ---
-TS_URL = 'api.thingspeak.com'
-TS_PORT = 80
-TS_API_RW_KEY = "YOURAPIKEY"
-TS_FIELD_TEMP = "field1"
-TS_FIELD_HUMID = "field2"
+print("in_main")
 
 function wificonfigprint()
     ledconfirm(1, 1500, 700)
@@ -52,7 +33,7 @@ end
 function wificonfig(ssid, pass, autoip)
     print('Configuring WiFi')
     wifi.setmode(wifi.STATION)
-	wifi.setphymode(wifi.PHYMODE_N)
+    wifi.setphymode(wifi.PHYMODE_N)
     wifi.sta.config(ssid,pass)
     wifi.sta.connect()
     
@@ -74,51 +55,52 @@ end
 
 function pushDataToTs()
         -- Get sensor data
-		DHT22 = require("dht")
-		status, temperature, humidity = DHT22.read(PIN_DHT22)
-		if (status == DHT22.OK) then
-			con = net.createConnection(net.TCP, 0)
-			con:connect(TS_PORT, TS_URL)
-			
-			con:on("connection", function(con, payloadout)
-			
-			con:send(
-				"POST /update?api_key=" .. TS_API_RW_KEY .. 
-				"&".. TS_FIELD_TEMP .."=" .. temperature .. 
-				"&".. TS_FIELD_HUMID .."=" .. humidity .. 
-				" HTTP/1.1\r\n" .. 
-				"Host: api.thingspeak.com\r\n" .. 
-				"Connection: close\r\n" .. 
-				"Accept: */*\r\n" .. 
-				"User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n" .. 
-				"\r\n")
-			end)
-			
-			con:on("receive", function(con, payloadout)
-				if (string.find(payloadout, "Status: 200") ~= nil) then
-					print("Posted to ThingSpeak OK values:"..temperature.." "..humidity)
-				end
-			end)
-			
-			con:on("disconnection", function(con, payloadout)
-				con:close();
-				collectgarbage();
-				print("Connection closed::going sleep for "..(READ_INTERVAL/1000).." seconds")
-				node.dsleep(READ_INTERVAL*1000) 
-			end)
-		else
-			print("Something bad happens while reading DHT22 sensor")
-		end
-		DHT22 = nil
+        DHT22 = require("dht")
+        status, temperature, humidity = DHT22.read(PIN_DHT22)
+        if (status == DHT22.OK) then
+            con = net.createConnection(net.TCP, 0)
+            con:connect(TS_PORT, TS_URL)
+            
+            con:on("connection", function(con, payloadout)
+            
+            con:send(
+                "POST /update?api_key=" .. TS_API_RW_KEY .. 
+                "&".. TS_FIELD_TEMP .."=" .. temperature .. 
+                "&".. TS_FIELD_HUMID .."=" .. humidity .. 
+                " HTTP/1.1\r\n" .. 
+                "Host: api.thingspeak.com\r\n" .. 
+                "Connection: close\r\n" .. 
+                "Accept: */*\r\n" .. 
+                "User-Agent: Mozilla/4.0 (compatible; esp8266 Lua; Windows NT 5.1)\r\n" .. 
+                "\r\n")
+            end)
+            
+            con:on("receive", function(con, payloadout)
+                if (string.find(payloadout, "Status: 200") ~= nil) then
+                    print("Posted to ThingSpeak OK values:"..temperature.." "..humidity)
+                end
+            end)
+            
+            con:on("disconnection", function(con, payloadout)
+                con:close();
+                collectgarbage();
+                print("Connection closed::going sleep for "..(READ_INTERVAL/1000).." seconds")
+                node.dsleep(READ_INTERVAL*1000) 
+            end)
+        else
+            print("Something bad happens while reading DHT22 sensor")
+        end
+        DHT22 = nil
         package.loaded["dht22"]=nil
 end
 
 function loop() 
         -- Stop main loop
         tmr.stop(2)
-		pushDataToTs()
+        pushDataToTs()
 end
 
 print('in main.lua')
 wificonfig(CFG_WIFI_SSID, CFG_WIFI_PASS, CFG_WIFI_AUTOIP)
 tmr.alarm(2, 500, 1, function() loop() end)
+
